@@ -2,7 +2,8 @@
 import WebSocket from 'ws';
 import { Bot } from './bot';
 import { catchException, logger } from './utils';
-import wppconnect from '@wppconnect-team/wppconnect';
+import { Whatsapp, create } from '@wppconnect-team/wppconnect';
+import { WSMessage, WSPing } from './types';
 
 let bot: Bot;
 let ws: WebSocket;
@@ -24,41 +25,62 @@ process.on('exit', () => {
   logger.warn(`Exit process`);
 });
 
-wppconnect
-  .create({
-    session: 'polaris',
-    catchQR: (base64Qrimg, asciiQR, attempts, urlCode) => {
-      console.log('Number of attempts to read the qrcode: ', attempts);
-      console.log('Terminal qrcode: ', asciiQR);
-      console.log('base64 image string qrcode: ', base64Qrimg);
-      console.log('urlCode (data-ref): ', urlCode);
-    },
-    statusFind: (statusSession, session) => {
-      console.log('Status Session: ', statusSession);
-      console.log('Session name: ', session);
-    },
-    headless: true,
-    devtools: false,
-    useChrome: true,
-    debug: false,
-    logQR: true,
-    browserWS: '',
-    browserArgs: [''],
-    puppeteerOptions: {},
-    disableWelcome: false,
-    updatesLog: true,
-    autoClose: 60000,
-    tokenStore: 'file',
-    folderNameToken: './tokens',
-  })
-  .then((client) => (bot = new Bot(ws, client)))
-  .catch((error) => console.log(error));
+create({
+  session: 'polaris',
+  catchQR: (_, qr) => {
+    logger.info(`QR received:\n${qr}`);
+  },
+  statusFind: (statusSession, session) => {
+    logger.info(`Status Session: ${statusSession}`);
+    logger.info(`Session name: ${session}`);
+  },
+  headless: true,
+  devtools: false,
+  useChrome: true,
+  debug: false,
+  logQR: true,
+  browserWS: '',
+  browserArgs: [''],
+  puppeteerOptions: {},
+  disableWelcome: true,
+  updatesLog: true,
+  autoClose: 60000,
+  tokenStore: 'file',
+  folderNameToken: './tokens',
+})
+  .then(async (client) => await start(client))
+  .catch((error) => logger.error(error));
 ws = new WebSocket(process.env.SERVER);
 
 clearInterval(pingInterval);
 pingInterval = setInterval(() => {
-  bot.ping();
+  if (bot) {
+    bot.ping();
+  } else {
+    const data: WSPing = {
+      bot: 'unauthenticated',
+      platform: 'whatsapp',
+      type: 'ping',
+    };
+    ws.send(JSON.stringify(data, null, 4));
+  }
 }, 30000);
+
+const start = async (client: Whatsapp) => {
+  bot = new Bot(ws, client);
+  await bot.init();
+
+  bot.client.onMessage(async (message) => {
+    const msg = await bot.convertMessage(message);
+    const data: WSMessage = {
+      bot: bot.user.username,
+      platform: 'whatsapp',
+      type: 'message',
+      message: msg,
+    };
+    ws.send(JSON.stringify(data));
+  });
+};
 
 ws.on('error', async (error: WebSocket.ErrorEvent) => {
   if (error['code'] === 'ECONNREFUSED') {
@@ -68,12 +90,8 @@ ws.on('error', async (error: WebSocket.ErrorEvent) => {
   }
 });
 
-ws.on('open', async () => {
-  //await bot.init()
-});
-
 ws.on('close', async (code) => {
-  await bot.client.setOnlinePresence(false);
+  if (bot) await bot.client.setOnlinePresence(false);
 
   if (code === 1005) {
     logger.warn(`Disconnected`);

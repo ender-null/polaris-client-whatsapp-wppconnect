@@ -107,6 +107,7 @@ dist
 .vscode
 .wwebjs_auth
 data/
+tokens/
 config.json
 
 # Migration

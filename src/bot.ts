@@ -17,12 +17,13 @@ export class Bot {
   }
 
   async init() {
-    const me = await this.client.getWid();
+    const id = await this.client.getWid();
+    const me = await this.client.getContact(id);
     this.user = {
-      id: me,
-      firstName: me,
+      id: me.id.user,
+      firstName: me.pushname,
       lastName: null,
-      username: me,
+      username: me.id.user,
       isBot: false,
     };
     const config: Config = JSON.parse(process.env.CONFIG);
@@ -59,18 +60,22 @@ export class Bot {
     };
     const chat = await this.client.getChatById(msg.chatId);
     const conversation = msg.isGroupMsg
-      ? new Conversation(`-${chat.id}`, chat.name)
-      : new Conversation(msg.sender.id.user, msg.sender.name);
-    const sender = new User(msg.sender.id.user, msg.sender.name, null, msg.sender.id.user, false);
+      ? new Conversation(`-${chat.id.user}`, chat.name)
+      : new Conversation(msg.sender.id.user, msg.sender.pushname);
+    const sender = new User(msg.sender.id.user, msg.sender.pushname, null, msg.sender.id.user, false);
     let content;
     let type;
 
-    if (msg.type === MessageType.CIPHERTEXT) {
-      content = msg.body;
+    if (msg.type === MessageType.CHAT) {
+      content = msg.content;
       type = 'text';
       if (msg.mentionedJidList) {
         extra.mentions = msg.mentionedJidList;
       }
+    } else if (msg.type === MessageType.IMAGE) {
+      content = msg.content;
+      type = 'photo';
+      extra.caption = msg['caption'];
     } else {
       type = 'unsupported';
     }
@@ -128,7 +133,7 @@ export class Bot {
     } else if (msg.type == 'animation') {
       this.client.sendGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption);
     } else if (msg.type == 'voice' || msg.type == 'audio') {
-      this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption,quotedMessageId);
+      this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
     } else if (msg.type == 'document') {
       this.client.sendFile(chatId, msg.content, msg.type, msg.extra.caption);
     } else if (msg.type == 'video') {
