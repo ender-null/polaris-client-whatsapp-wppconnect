@@ -40,7 +40,7 @@ create({
   debug: false,
   logQR: true,
   browserWS: '',
-  browserArgs: [''],
+  browserArgs: ['--no-sandbox'],
   puppeteerOptions: {},
   disableWelcome: true,
   updatesLog: true,
