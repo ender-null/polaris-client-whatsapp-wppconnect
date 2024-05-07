@@ -9,6 +9,7 @@ COPY yarn.lock ./
 
 RUN yarn install
 RUN yarn add sharp --ignore-engines
+RUN npx puppeteer browsers install chrome
 
 COPY . .
 
