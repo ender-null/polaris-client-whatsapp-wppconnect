@@ -2,7 +2,7 @@ import winston, { createLogger, transports, format as winstonFormat } from 'wins
 import 'winston-daily-rotate-file';
 import fs from 'fs';
 import { FileResult, fileSync } from 'tmp';
-import { FileTypeResult, fileTypeFromBuffer } from 'file-type';
+import { FileTypeResult, fromBuffer } from 'file-type';
 
 export const catchException = (exception: Error): Error => {
   logger.error(`Catch exception: ${exception.message}`);
@@ -61,7 +61,7 @@ export const toBase64 = (filePath): Promise<string> => {
 export const fromBase64 = (base64String): Promise<FileResult> => {
   return new Promise((resolve, reject) => {
     const bufferData = Buffer.from(base64String, 'base64');
-    fileTypeFromBuffer(bufferData).then((info: FileTypeResult) => {
+    fromBuffer(bufferData).then((info: FileTypeResult) => {
       const file: FileResult = fileSync({ mode: 0o644, postfix: `.${info.ext}` });
       fs.writeFile(file.name, bufferData, (err) => {
         if (err) {
