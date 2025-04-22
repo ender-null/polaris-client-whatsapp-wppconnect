@@ -61,8 +61,9 @@ export class Bot {
     const chat = await this.client.getChatById(msg.chatId);
     const conversation = msg.isGroupMsg
       ? new Conversation(`-${chat.id.user}`, chat.name)
-      : new Conversation(msg.sender.id.user, msg.sender.pushname);
-    const sender = new User(msg.sender.id.user, msg.sender.pushname, null, msg.sender.id.user, false);
+      : new Conversation(chat.id.user, chat.contact.pushname);
+    const senderId = (msg.sender.id as any).split('@')[0];
+    const sender = new User(senderId, msg.sender.pushname, null, senderId, false);
     let content;
     let type;
 
