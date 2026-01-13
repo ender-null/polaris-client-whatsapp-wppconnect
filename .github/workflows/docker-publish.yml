@@ -144,6 +144,7 @@ jobs:
           export-env: true
         env:
           OP_SERVICE_ACCOUNT_TOKEN: ${{ secrets.OP_SERVICE_ACCOUNT_TOKEN }}
+          CR_PAT: op://end.works/GitHub Token/credential
           HOST: op://end.works/end.works/URL
           PORT: op://end.works/end.works/port
           USERNAME: op://end.works/end.works/username
@@ -151,7 +152,6 @@ jobs:
           FINGERPRINT: op://end.works/SSH Key/fingerprint
           SERVER: op://end.works/Peto-tan Config/server
           CONFIG: op://end.works/Peto-tan Config/config whatsapp
-          CR_PAT: op://end.works/GitHub Token/credential
           MONGODB_URI: op://end.works/Peto-tan Config/mongodb uri
 
       - name: Run container on host
