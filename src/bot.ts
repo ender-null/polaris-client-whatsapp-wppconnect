@@ -4,7 +4,7 @@ import { FileResult } from 'tmp';
 import { Conversation, Extra, Message, User, WSInit, WSPing } from './types';
 import { Config } from './config';
 import { fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
-import { Whatsapp, Message as WAMessage, MessageType } from '@wppconnect-team/wppconnect';
+import { Whatsapp, Message as WAMessage, MessageType, Wid } from '@wppconnect-team/wppconnect';
 
 export class Bot {
   user: User;
@@ -19,11 +19,12 @@ export class Bot {
   async init() {
     const id = await this.client.getWid();
     const me = await this.client.getContact(id);
+    const wid = me.id as unknown as Wid;
     this.user = {
-      id: me.id,
-      firstName: me.pushname,
+      id: wid.user,
+      firstName: me.formattedName,
       lastName: null,
-      username: me.id,
+      username: wid.user,
       isBot: false,
     };
     const config: Config = JSON.parse(process.env.CONFIG);
@@ -53,10 +54,10 @@ export class Bot {
 
   async convertMessage(msg: WAMessage) {
     await this.client.setOnlinePresence(true);
-    await this.client.sendSeen(msg.chatId.toString());
+    await this.client.sendSeen(msg.chatId as string);
     const id: string = msg.id;
     const extra: Extra = {
-      originalMessage: msg,
+      //originalMessage: msg,
     };
     const chat = await this.client.getChatById(msg.chatId);
     const conversation = msg.isGroupMsg
@@ -91,9 +92,7 @@ export class Bot {
   }
 
   formatChatId(conversationId: number | string) {
-    return String(conversationId).startsWith('-')
-      ? `${String(conversationId).slice(1)}@g.us`
-      : `${conversationId}@c.us`;
+    return String(conversationId).startsWith('-') ? `${String(conversationId).slice(1)}@g.us` : `${conversationId}@lid`;
   }
 
   async sendMessage(msg: Message): Promise<WAMessage> {
@@ -123,7 +122,7 @@ export class Bot {
       text = text.trim();
       const result = text.matchAll(/@\d+/gim);
       const mentionsFound = [...result][0];
-      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@c.us`);
+      const mentions: any[] = mentionsFound?.map((mention) => `${mention.slice(1)}@lid`);
       this.client.sendText(chatId, text, {
         linkPreview: preview,
         mentionedList: mentions,
@@ -136,7 +135,11 @@ export class Bot {
     } else if (msg.type == 'voice' || msg.type == 'audio') {
       this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
     } else if (msg.type == 'document') {
-      this.client.sendFile(chatId, msg.content, msg.type, msg.extra.caption);
+      this.client.sendFile(chatId, msg.content, {
+        caption: msg.extra.caption,
+        filename: msg.type,
+        quotedMsg: quotedMessageId,
+      });
     } else if (msg.type == 'video') {
       this.client.sendVideoAsGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
     }

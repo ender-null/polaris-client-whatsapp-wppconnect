@@ -27,7 +27,8 @@ process.on('exit', () => {
 
 create({
   session: 'polaris',
-  catchQR: (_, qr) => {
+  catchQR: (_, qr, attempts) => {
+    logger.info('Number of attempts to read the qrcode: ', attempts);
     logger.info(`QR received:\n${qr}`);
   },
   statusFind: (statusSession, session) => {
@@ -45,12 +46,12 @@ create({
   puppeteerOptions: {},
   disableWelcome: true,
   updatesLog: false,
-  autoClose: 60000,
+  autoClose: 0,
   tokenStore: 'file',
   folderNameToken: './tokens',
 })
   .then(async (client) => await start(client))
-  .catch((error) => logger.error(error));
+  .catch((error) => logger.error(error.message));
 ws = new WebSocket(process.env.SERVER);
 
 clearInterval(pingInterval);
