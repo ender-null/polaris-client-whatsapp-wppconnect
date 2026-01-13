@@ -151,6 +151,7 @@ jobs:
           FINGERPRINT: op://end.works/SSH Key/fingerprint
           SERVER: op://end.works/Peto-tan Config/server
           CONFIG: op://end.works/Peto-tan Config/config whatsapp
+          CR_PAT: op://end.works/GitHub Token/credential
           MONGODB_URI: op://end.works/Peto-tan Config/mongodb uri
 
       - name: Run container on host
@@ -161,6 +162,7 @@ jobs:
           username: ${{ env.USERNAME }}
           key: ${{ env.KEY }}
           script: |
+            echo ${{ env.CR_PAT }} | docker login ghcr.io -u USERNAME --password-stdin
             docker pull ghcr.io/${{ github.repository }}:${{ env.TAG }}
             docker stop ${{ env.CONTAINER_NAME }}
             docker rm ${{ env.CONTAINER_NAME }}
