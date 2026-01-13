@@ -27,14 +27,6 @@ process.on('exit', () => {
 
 create({
   session: 'polaris',
-  catchQR: (_, qr, attempts) => {
-    logger.info('Number of attempts to read the qrcode: ', attempts);
-    logger.info(`QR received:\n${qr}`);
-  },
-  statusFind: (statusSession, session) => {
-    logger.info(`Status Session: ${statusSession}`);
-    logger.info(`Session name: ${session}`);
-  },
   logger: logger,
   headless: true,
   devtools: false,
@@ -42,13 +34,11 @@ create({
   debug: false,
   logQR: true,
   browserWS: '',
-  browserArgs: ['--no-sandbox'],
+  browserArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--unhandled-rejections=strict'],
   puppeteerOptions: {},
   disableWelcome: true,
   updatesLog: false,
   autoClose: 0,
-  tokenStore: 'file',
-  folderNameToken: './tokens',
 })
   .then(async (client) => await start(client))
   .catch((error) => logger.error(error.message));
