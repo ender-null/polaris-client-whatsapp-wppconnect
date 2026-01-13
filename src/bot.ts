@@ -20,10 +20,10 @@ export class Bot {
     const id = await this.client.getWid();
     const me = await this.client.getContact(id);
     this.user = {
-      id: me.id.user,
+      id: me.id,
       firstName: me.pushname,
       lastName: null,
-      username: me.id.user,
+      username: me.id,
       isBot: false,
     };
     const config: Config = JSON.parse(process.env.CONFIG);
@@ -53,10 +53,10 @@ export class Bot {
 
   async convertMessage(msg: WAMessage) {
     await this.client.setOnlinePresence(true);
-    await this.client.sendSeen(msg.chatId);
+    await this.client.sendSeen(msg.chatId.toString());
     const id: string = msg.id;
     const extra: Extra = {
-      // originalMessage: msg,
+      originalMessage: msg,
     };
     const chat = await this.client.getChatById(msg.chatId);
     const conversation = msg.isGroupMsg
