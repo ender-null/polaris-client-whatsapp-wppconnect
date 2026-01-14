@@ -3,7 +3,7 @@ import WebSocket from 'ws';
 import { FileResult } from 'tmp';
 import { Conversation, Extra, Message, User, WSInit, WSPing } from './types';
 import { Config } from './config';
-import { fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
+import { downloadFileFromUrl, fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
 import { Whatsapp, Message as WAMessage, MessageType, Wid } from '@wppconnect-team/wppconnect';
 
 export class Bot {
@@ -107,6 +107,15 @@ export class Bot {
     caption = caption?.trim();
     const quotedMessageId = msg.reply ? String(msg.reply.id) : null;
 
+    let downloadedFile: FileResult = null;
+    if (
+      msg.type != 'text' &&
+      msg.content &&
+      (msg.content.startsWith('http://') || msg.content.startsWith('https://'))
+    ) {
+      downloadedFile = await downloadFileFromUrl(msg.content);
+    }
+
     if (msg.type == 'text') {
       if (!msg.content || (typeof msg.content == 'string' && msg.content.length == 0)) {
         return null;
@@ -129,11 +138,23 @@ export class Bot {
         quotedMsg: quotedMessageId,
       });
     } else if (msg.type == 'photo') {
-      this.client.sendImageFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      if (downloadedFile) {
+        this.client.sendImage(chatId, downloadedFile.name, msg.type, msg.extra.caption, quotedMessageId);
+      } else {
+        this.client.sendImageFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      }
     } else if (msg.type == 'animation') {
-      this.client.sendGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption);
+      if (downloadedFile) {
+        this.client.sendGif(chatId, downloadedFile.name, msg.type, msg.extra.caption);
+      } else {
+        this.client.sendGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption);
+      }
     } else if (msg.type == 'voice' || msg.type == 'audio') {
-      this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      if (downloadedFile) {
+        this.client.sendPtt(chatId, downloadedFile.name, msg.type, msg.extra.caption, quotedMessageId);
+      } else {
+        this.client.sendPttFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      }
     } else if (msg.type == 'document') {
       this.client.sendFile(chatId, msg.content, {
         caption: msg.extra.caption,
@@ -141,7 +162,11 @@ export class Bot {
         quotedMsg: quotedMessageId,
       });
     } else if (msg.type == 'video') {
-      this.client.sendVideoAsGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      if (downloadedFile) {
+        this.client.sendVideoAsGif(chatId, downloadedFile.name, msg.type, msg.extra.caption);
+      } else {
+        this.client.sendVideoAsGifFromBase64(chatId, msg.content, msg.type, msg.extra.caption, quotedMessageId);
+      }
     }
     await this.client.stopTyping(chatId);
     return null;

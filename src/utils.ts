@@ -1,6 +1,8 @@
 import winston, { createLogger, transports, format as winstonFormat } from 'winston';
 import 'winston-daily-rotate-file';
 import fs from 'fs';
+import https from 'https';
+import http from 'http';
 import { FileResult, fileSync } from 'tmp';
 import { FileTypeResult, fromBuffer } from 'file-type';
 
@@ -71,6 +73,37 @@ export const fromBase64 = (base64String): Promise<FileResult> => {
         resolve(file);
       });
     });
+  });
+};
+
+export const downloadFileFromUrl = (url: string): Promise<FileResult> => {
+  return new Promise((resolve, reject) => {
+    const client = url.startsWith('https:') ? https : http;
+    const file: FileResult = fileSync({ mode: 0o644, postfix: '.tmp' });
+
+    client
+      .get(url, (response) => {
+        if (response.statusCode !== 200) {
+          reject(new Error(`Failed to download file: ${response.statusCode} ${response.statusMessage}`));
+          return;
+        }
+
+        const fileStream = fs.createWriteStream(file.name);
+        response.pipe(fileStream);
+
+        fileStream.on('finish', () => {
+          fileStream.close();
+          resolve(file);
+        });
+
+        fileStream.on('error', (err) => {
+          fs.unlink(file.name, () => {});
+          reject(err);
+        });
+      })
+      .on('error', (err) => {
+        reject(err);
+      });
   });
 };
 
