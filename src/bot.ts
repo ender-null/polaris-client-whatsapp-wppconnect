@@ -4,7 +4,7 @@ import { FileResult } from 'tmp';
 import { Conversation, Extra, Message, User, WSInit, WSPing } from './types';
 import { Config } from './config';
 import { downloadFileFromUrl, fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
-import { Whatsapp, Message as WAMessage, MessageType, Wid } from '@wppconnect-team/wppconnect';
+import { Whatsapp, Message as WAMessage, MessageType } from '@wppconnect-team/wppconnect';
 
 export class Bot {
   user: User;
@@ -18,13 +18,13 @@ export class Bot {
 
   async init() {
     const id = await this.client.getWid();
-    const me = await this.client.getContact(id);
-    const wid = me.id as unknown as Wid;
+    const name = await this.client.getProfileName();
+    const contact = await this.client.getPnLidEntry(id);
     this.user = {
-      id: wid.user,
-      firstName: me.formattedName,
+      id: contact.lid.id,
+      firstName: name,
       lastName: null,
-      username: wid.user,
+      username: contact.lid.id,
       isBot: false,
     };
     const config: Config = JSON.parse(process.env.CONFIG);

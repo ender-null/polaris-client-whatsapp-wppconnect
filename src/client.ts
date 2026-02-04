@@ -67,20 +67,24 @@ pingInterval = setInterval(() => {
 }, 30000);
 
 const start = async (client: Whatsapp) => {
-  const accountId = (await client.getWid()).split('@')[0];
+  const wid = await client.getWid();
+  const contact = await client.getPnLidEntry(wid);
+  const accountId = contact.lid.id;
   ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`);
-  bot = new Bot(ws, client);
-  await bot.init();
 
-  bot.client.onMessage(async (message) => {
-    const msg = await bot.convertMessage(message);
-    const data: WSMessage = {
-      bot: bot.user.username,
-      platform: 'whatsapp',
-      type: 'message',
-      message: msg,
-    };
-    ws.send(JSON.stringify(data));
+  ws.on('open', async () => {
+    bot = new Bot(ws, client);
+    bot.client.onMessage(async (message) => {
+      const msg = await bot.convertMessage(message);
+      const data: WSMessage = {
+        bot: bot.user.username,
+        platform: 'whatsapp',
+        type: 'message',
+        message: msg,
+      };
+      ws.send(JSON.stringify(data));
+    });
+    await bot.init();
   });
 
   ws.on('error', async (error: WebSocket.ErrorEvent) => {
@@ -90,10 +94,10 @@ const start = async (client: Whatsapp) => {
       logger.error(error);
     }
   });
-  
+
   ws.on('close', async (code) => {
     if (bot) await bot.client.setOnlinePresence(false);
-  
+
     if (code === 1005) {
       logger.warn(`Disconnected`);
     } else if (code === 1006) {
@@ -102,7 +106,7 @@ const start = async (client: Whatsapp) => {
     clearInterval(pingInterval);
     process.exit();
   });
-  
+
   ws.on('message', (data: string) => {
     try {
       const msg = JSON.parse(data);
