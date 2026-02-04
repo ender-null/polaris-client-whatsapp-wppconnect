@@ -67,8 +67,7 @@ pingInterval = setInterval(() => {
 }, 30000);
 
 const start = async (client: Whatsapp) => {
-  const accountId = await client.getWid();
-  logger.info(`Account ID: ${accountId}`);
+  const accountId = (await client.getWid()).split('@')[0];
   ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`);
   bot = new Bot(ws, client);
   await bot.init();
