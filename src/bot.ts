@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import WebSocket from 'ws';
 import { FileResult } from 'tmp';
-import { Conversation, Extra, Message, User, WSInit, WSPing } from './types';
+import { Conversation, ConversationType, Extra, Message, User, WSInit, WSPing } from './types';
 import { Config } from './config';
 import { downloadFileFromUrl, fromBase64, htmlToWhatsAppMarkdown, logger } from './utils';
 import { Whatsapp, Message as WAMessage, MessageType } from '@wppconnect-team/wppconnect';
@@ -60,9 +60,9 @@ export class Bot {
       //originalMessage: msg,
     };
     const chat = await this.client.getChatById(msg.chatId);
-    const conversation = msg.isGroupMsg
-      ? new Conversation(`-${chat.id.user}`, chat.name)
-      : new Conversation(chat.id.user, chat.contact.pushname);
+    const conversation = chat.groupMetadata
+      ? new Conversation(`-${chat.groupMetadata.id.user}`, chat.groupMetadata.subject, 'group')
+      : new Conversation(chat.id.user, chat.contact.pushname, 'private');
     const senderId = (msg.sender.id as any).split('@')[0];
     const sender = new User(senderId, msg.sender.pushname, null, senderId, false);
     let content;
@@ -91,13 +91,14 @@ export class Bot {
     return new Message(id, conversation, sender, content, type, date, reply, extra);
   }
 
-  formatChatId(conversationId: number | string) {
-    return String(conversationId).startsWith('-') ? `${String(conversationId).slice(1)}@g.us` : `${conversationId}@lid`;
+  formatChatId(conversationId: number | string, type: ConversationType) {
+    const isGroup = type !== 'private' || String(conversationId).startsWith('-');
+    return isGroup ? `${String(conversationId).slice(1)}@g.us` : `${conversationId}@lid`;
   }
 
   async sendMessage(msg: Message): Promise<WAMessage> {
     await this.client.setOnlinePresence(true);
-    const chatId = this.formatChatId(msg.conversation.id);
+    const chatId = this.formatChatId(msg.conversation.id, msg.conversation.type);
     await this.client.startTyping(chatId);
 
     let caption = msg.extra?.caption;
