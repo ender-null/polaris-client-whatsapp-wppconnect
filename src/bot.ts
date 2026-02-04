@@ -63,7 +63,7 @@ export class Bot {
     const conversation = chat.groupMetadata
       ? new Conversation(`-${chat.groupMetadata.id.user}`, chat.groupMetadata.subject, 'group')
       : new Conversation(chat.id.user, chat.contact.pushname, 'private');
-    const senderId = (msg.sender.id as any).split('@')[0];
+    const senderId = msg.sender.id.toString().split('@')[0];
     const sender = new User(senderId, msg.sender.pushname, null, senderId, false);
     let content;
     let type;
