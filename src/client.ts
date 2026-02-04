@@ -9,10 +9,6 @@ let bot: Bot;
 let ws: WebSocket;
 let pingInterval;
 
-logger.debug(`SERVER: ${process.env.SERVER}`);
-logger.debug(`CONFIG: ${process.env.CONFIG}`);
-logger.debug(`MONGODB_URI: ${process.env.MONGODB_URI}`);
-
 const close = () => {
   logger.warn(`Close server`);
   ws.terminate();
@@ -24,6 +20,18 @@ process.on('SIGTERM', () => close());
 process.on('exit', () => {
   logger.warn(`Exit process`);
 });
+
+if (!process.env.SERVER || !process.env.CONFIG) {
+  if (!process.env.SERVER) {
+    logger.warn(`Missing env variable SERVER`);
+  }
+  if (!process.env.CONFIG) {
+    logger.warn(`Missing env variable CONFIG`);
+  }
+  close();
+}
+
+const serverUrl = process.env.SERVER;
 
 create({
   session: 'polaris',
@@ -42,10 +50,10 @@ create({
 })
   .then(async (client) => await start(client))
   .catch((error) => logger.error(error.message));
-ws = new WebSocket(process.env.SERVER);
 
 clearInterval(pingInterval);
 pingInterval = setInterval(() => {
+  if (!ws) return;
   if (bot) {
     bot.ping();
   } else {
@@ -59,6 +67,9 @@ pingInterval = setInterval(() => {
 }, 30000);
 
 const start = async (client: Whatsapp) => {
+  const accountId = await client.getWid();
+  logger.info(`Account ID: ${accountId}`);
+  ws = new WebSocket(`${serverUrl}?platform=whatsapp&accountId=${accountId}`);
   bot = new Bot(ws, client);
   await bot.init();
 
@@ -72,38 +83,38 @@ const start = async (client: Whatsapp) => {
     };
     ws.send(JSON.stringify(data));
   });
+
+  ws.on('error', async (error: WebSocket.ErrorEvent) => {
+    if (error['code'] === 'ECONNREFUSED') {
+      logger.info(`Waiting for server to be available...`);
+    } else {
+      logger.error(error);
+    }
+  });
+  
+  ws.on('close', async (code) => {
+    if (bot) await bot.client.setOnlinePresence(false);
+  
+    if (code === 1005) {
+      logger.warn(`Disconnected`);
+    } else if (code === 1006) {
+      logger.warn(`Terminated`);
+    }
+    clearInterval(pingInterval);
+    process.exit();
+  });
+  
+  ws.on('message', (data: string) => {
+    try {
+      const msg = JSON.parse(data);
+      if (msg.type !== 'pong') {
+        logger.info(JSON.stringify(msg, null, 4));
+      }
+      if (msg.type === 'message') {
+        bot.sendMessage(msg.message);
+      }
+    } catch (error) {
+      catchException(error);
+    }
+  });
 };
-
-ws.on('error', async (error: WebSocket.ErrorEvent) => {
-  if (error['code'] === 'ECONNREFUSED') {
-    logger.info(`Waiting for server to be available...`);
-  } else {
-    logger.error(error);
-  }
-});
-
-ws.on('close', async (code) => {
-  if (bot) await bot.client.setOnlinePresence(false);
-
-  if (code === 1005) {
-    logger.warn(`Disconnected`);
-  } else if (code === 1006) {
-    logger.warn(`Terminated`);
-  }
-  clearInterval(pingInterval);
-  process.exit();
-});
-
-ws.on('message', (data: string) => {
-  try {
-    const msg = JSON.parse(data);
-    if (msg.type !== 'pong') {
-      logger.info(JSON.stringify(msg, null, 4));
-    }
-    if (msg.type === 'message') {
-      bot.sendMessage(msg.message);
-    }
-  } catch (error) {
-    catchException(error);
-  }
-});
