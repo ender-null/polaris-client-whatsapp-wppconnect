@@ -39,7 +39,7 @@
   "dependencies": {
     "@wppconnect-team/wppconnect": "^1.38.0",
     "file-type": "^16.5.4",
-    "mongoose": "^9.1.5",
+    "mongoose": "^9.1.6",
     "sharp": "^0.34.5",
     "tmp": "^0.2.5",
     "winston": "^3.19.0",
@@ -47,12 +47,12 @@
     "ws": "^8.19.0"
   },
   "devDependencies": {
-    "@types/node": "^25.2.0",
+    "@types/node": "^25.2.2",
     "@types/tmp": "^0.2.6",
     "@types/ws": "^8.18.1",
     "@typescript-eslint/eslint-plugin": "^8.54.0",
     "@typescript-eslint/parser": "^8.54.0",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-config-standard": "^17.1.0",
     "eslint-config-standard-with-typescript": "^43.0.1",
