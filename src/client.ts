@@ -42,7 +42,7 @@ create({
   debug: false,
   logQR: true,
   browserWS: '',
-  browserArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--unhandled-rejections=strict'],
+  browserArgs: ['--no-sandbox', '--disable-setuid-sandbox', '--unhandled-rejections=strict', '--disable-gpu'],
   puppeteerOptions: {},
   disableWelcome: true,
   updatesLog: false,
